@@ -289,19 +289,13 @@ fun RolePinSetupScreen(
     onSubmit: (role: CompanionRole, pin: String, inviteCode: String) -> Unit
 ) {
     val haptics = LocalHapticFeedback.current
-    var selectedRole by remember { mutableStateOf(CompanionRole.MAHMOUD) }
+    var selectedRole by remember { mutableStateOf<CompanionRole?>(null) }
     var pinDigits by remember { mutableStateOf("") }
     var showInviteField by remember { mutableStateOf(false) }
     var inviteCode by remember { mutableStateOf("") }
 
-    val roleHasExistingPin = remember(existingSanctuary, selectedRole) {
-        val hash = if (selectedRole == CompanionRole.MAHMOUD) {
-            existingSanctuary?.mahmoudPinHash.orEmpty()
-        } else {
-            existingSanctuary?.nourPinHash.orEmpty()
-        }
-        hash.isNotEmpty()
-    }
+    val activeRole = selectedRole
+    val expectedLength = activeRole?.expectedPasswordLength ?: 6
 
     IslamicPatternBackground {
         Box(
@@ -322,7 +316,7 @@ fun RolePinSetupScreen(
                     imageVector = Icons.Filled.Lock,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(34.dp)
+                    modifier = Modifier.size(32.dp)
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -337,7 +331,7 @@ fun RolePinSetupScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = stringResource(R.string.role_select_subtitle),
+                    text = "اضغط على صورتك ثم أدخل كلمة السر الخاصة بك 🤍",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -345,13 +339,14 @@ fun RolePinSetupScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Role selection cards: Mahmoud & Nour
+                // Two illustrated circular Avatar cards: Mahmoud & Nour
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     RoleChoiceCard(
                         role = CompanionRole.MAHMOUD,
+                        avatarRes = R.drawable.img_avatar_mahmoud,
                         selected = selectedRole == CompanionRole.MAHMOUD,
                         accentColor = MaterialTheme.colorScheme.primary,
                         onClick = {
@@ -365,6 +360,7 @@ fun RolePinSetupScreen(
                     )
                     RoleChoiceCard(
                         role = CompanionRole.NOUR,
+                        avatarRes = R.drawable.img_avatar_nour,
                         selected = selectedRole == CompanionRole.NOUR,
                         accentColor = SubtleDustyRose,
                         onClick = {
@@ -380,125 +376,132 @@ fun RolePinSetupScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // PIN prompt & indicators
-                SpiritualCard {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = if (roleHasExistingPin || inviteCode.isNotBlank()) {
-                                stringResource(R.string.pin_enter_prompt)
-                            } else {
-                                stringResource(R.string.pin_create_prompt)
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
-                        )
+                // Password keypad appears smoothly once an avatar is tapped
+                AnimatedVisibility(visible = activeRole != null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val chosenRole = activeRole ?: CompanionRole.MAHMOUD
+                        val accent = if (chosenRole == CompanionRole.MAHMOUD) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            SubtleDustyRose
+                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            repeat(4) { index ->
-                                val filled = index < pinDigits.length
-                                Box(
-                                    modifier = Modifier
-                                        .size(18.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (filled) MaterialTheme.colorScheme.secondary
-                                            else MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .border(
-                                            width = 1.5.dp,
-                                            color = if (filled) MaterialTheme.colorScheme.secondary
-                                            else MaterialTheme.colorScheme.outline,
-                                            shape = CircleShape
-                                        )
+                        SpiritualCard {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "أدخل كلمة سر ${chosenRole.arabicName} ($expectedLength أرقام)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
                                 )
-                            }
-                        }
 
-                        if (!errorMessage.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                                Spacer(modifier = Modifier.height(16.dp))
 
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        // Clean tactile numeric PIN pad
-                        val rows = listOf(
-                            listOf("1", "2", "3"),
-                            listOf("4", "5", "6"),
-                            listOf("7", "8", "9"),
-                            listOf("", "0", "DEL")
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            rows.forEach { row ->
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                    horizontalArrangement = Arrangement.spacedBy(if (expectedLength > 6) 10.dp else 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    row.forEach { key ->
-                                        when (key) {
-                                            "" -> Spacer(modifier = Modifier.size(64.dp))
-                                            "DEL" -> {
-                                                Surface(
-                                                    onClick = {
-                                                        if (pinDigits.isNotEmpty()) {
-                                                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                            pinDigits = pinDigits.dropLast(1)
+                                    repeat(expectedLength) { index ->
+                                        val filled = index < pinDigits.length
+                                        Box(
+                                            modifier = Modifier
+                                                .size(if (expectedLength > 6) 15.dp else 17.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (filled) accent
+                                                    else MaterialTheme.colorScheme.surfaceVariant
+                                                )
+                                                .border(
+                                                    width = 1.5.dp,
+                                                    color = if (filled) accent
+                                                    else MaterialTheme.colorScheme.outline,
+                                                    shape = CircleShape
+                                                )
+                                        )
+                                    }
+                                }
+
+                                if (!errorMessage.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = errorMessage,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(18.dp))
+
+                                val rows = listOf(
+                                    listOf("1", "2", "3"),
+                                    listOf("4", "5", "6"),
+                                    listOf("7", "8", "9"),
+                                    listOf("", "0", "DEL")
+                                )
+
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    rows.forEach { row ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                        ) {
+                                            row.forEach { key ->
+                                                when (key) {
+                                                    "" -> Spacer(modifier = Modifier.size(62.dp))
+                                                    "DEL" -> {
+                                                        Surface(
+                                                            onClick = {
+                                                                if (pinDigits.isNotEmpty()) {
+                                                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                    pinDigits = pinDigits.dropLast(1)
+                                                                }
+                                                            },
+                                                            shape = CircleShape,
+                                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                                            modifier = Modifier
+                                                                .size(62.dp)
+                                                                .testTag("pin_backspace_button")
+                                                        ) {
+                                                            Box(contentAlignment = Alignment.Center) {
+                                                                Icon(
+                                                                    imageVector = Icons.AutoMirrored.Filled.Backspace,
+                                                                    contentDescription = "حذف رقم",
+                                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
                                                         }
-                                                    },
-                                                    shape = CircleShape,
-                                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                                    modifier = Modifier
-                                                        .size(64.dp)
-                                                        .testTag("pin_backspace_button")
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Icon(
-                                                            imageVector = Icons.AutoMirrored.Filled.Backspace,
-                                                            contentDescription = "حذف رقم",
-                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
                                                     }
-                                                }
-                                            }
-                                            else -> {
-                                                Surface(
-                                                    onClick = {
-                                                        if (pinDigits.length < 4 && !isSubmitting) {
-                                                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                            pinDigits += key
+                                                    else -> {
+                                                        Surface(
+                                                            onClick = {
+                                                                if (pinDigits.length < 12 && !isSubmitting) {
+                                                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                                    pinDigits += key
+                                                                }
+                                                            },
+                                                            shape = CircleShape,
+                                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                                            modifier = Modifier
+                                                                .size(62.dp)
+                                                                .testTag("pin_digit_$key")
+                                                        ) {
+                                                            Box(contentAlignment = Alignment.Center) {
+                                                                Text(
+                                                                    text = key,
+                                                                    style = MaterialTheme.typography.headlineMedium,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                            }
                                                         }
-                                                    },
-                                                    shape = CircleShape,
-                                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                                    modifier = Modifier
-                                                        .size(64.dp)
-                                                        .testTag("pin_digit_$key")
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Text(
-                                                            text = key,
-                                                            style = MaterialTheme.typography.headlineMedium,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.onSurface
-                                                        )
                                                     }
                                                 }
                                             }
@@ -507,65 +510,65 @@ fun RolePinSetupScreen(
                                 }
                             }
                         }
-                    }
-                }
 
-                if (existingSanctuary == null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    TextButton(
-                        onClick = { showInviteField = !showInviteField },
-                        modifier = Modifier.testTag("toggle_invite_code_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Key,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(R.string.invite_code_toggle),
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
+                        if (existingSanctuary == null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            TextButton(
+                                onClick = { showInviteField = !showInviteField },
+                                modifier = Modifier.testTag("toggle_invite_code_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Key,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.invite_code_toggle),
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
 
-                    AnimatedVisibility(visible = showInviteField) {
-                        OutlinedTextField(
-                            value = inviteCode,
-                            onValueChange = { inviteCode = it.uppercase().take(12) },
-                            label = { Text(stringResource(R.string.invite_code_hint)) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
+                            AnimatedVisibility(visible = showInviteField) {
+                                OutlinedTextField(
+                                    value = inviteCode,
+                                    onValueChange = { inviteCode = it.uppercase().take(12) },
+                                    label = { Text(stringResource(R.string.invite_code_hint)) },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(16.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp)
+                                        .testTag("invite_code_input")
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Button(
+                            onClick = { onSubmit(chosenRole, pinDigits, inviteCode) },
+                            enabled = pinDigits.length >= 4 && !isSubmitting,
+                            shape = RoundedCornerShape(18.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 12.dp)
-                                .testTag("invite_code_input")
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = { onSubmit(selectedRole, pinDigits, inviteCode) },
-                    enabled = pinDigits.length == 4 && !isSubmitting,
-                    shape = RoundedCornerShape(18.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp)
-                        .testTag("confirm_role_pin_button")
-                ) {
-                    if (isSubmitting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            text = "دخول باسم ${selectedRole.arabicName} 🤍",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                                .height(54.dp)
+                                .testTag("confirm_role_pin_button")
+                        ) {
+                            if (isSubmitting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "دخول باسم ${chosenRole.arabicName} 🤍",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -576,21 +579,23 @@ fun RolePinSetupScreen(
 @Composable
 private fun RoleChoiceCard(
     role: CompanionRole,
+    avatarRes: Int,
     selected: Boolean,
     accentColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         color = if (selected) accentColor.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surface,
         border = BorderStroke(
-            width = if (selected) 2.dp else 1.dp,
+            width = if (selected) 2.5.dp else 1.dp,
             color = if (selected) accentColor else MaterialTheme.colorScheme.outlineVariant
         ),
+        tonalElevation = if (selected) 4.dp else 1.dp,
         modifier = modifier
-            .height(108.dp)
-            .clip(RoundedCornerShape(22.dp))
+            .height(168.dp)
+            .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick)
     ) {
         Column(
@@ -600,20 +605,20 @@ private fun RoleChoiceCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
+            Image(
+                painter = painterResource(id = avatarRes),
+                contentDescription = "صورة ${role.arabicName}",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(88.dp)
                     .clip(CircleShape)
-                    .background(accentColor.copy(alpha = if (selected) 0.25f else 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = role.arabicName,
-                    tint = accentColor
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+                    .border(
+                        width = if (selected) 3.dp else 1.5.dp,
+                        color = if (selected) accentColor else SoftChampagneGold.copy(alpha = 0.55f),
+                        shape = CircleShape
+                    )
+            )
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = role.arabicName,
                 style = MaterialTheme.typography.titleLarge,

@@ -281,6 +281,7 @@ fun DashboardScreen(
             ) {
                 PartnerLiveStatusCard(
                     name = CompanionRole.MAHMOUD.arabicName,
+                    avatarRes = R.drawable.img_avatar_mahmoud,
                     isCurrentUser = activeRole == CompanionRole.MAHMOUD,
                     prayersCompleted = mahmoudPrayers,
                     dhikrToday = mahmoudDhikrToday,
@@ -291,6 +292,7 @@ fun DashboardScreen(
                 )
                 PartnerLiveStatusCard(
                     name = CompanionRole.NOUR.arabicName,
+                    avatarRes = R.drawable.img_avatar_nour,
                     isCurrentUser = activeRole == CompanionRole.NOUR,
                     prayersCompleted = nourPrayers,
                     dhikrToday = nourDhikrToday,
@@ -530,6 +532,7 @@ fun DashboardScreen(
 @Composable
 private fun PartnerLiveStatusCard(
     name: String,
+    avatarRes: Int,
     isCurrentUser: Boolean,
     prayersCompleted: Int,
     dhikrToday: Int,
@@ -548,12 +551,23 @@ private fun PartnerLiveStatusCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = avatarRes),
+                        contentDescription = "صورة $name",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor
+                    )
+                }
                 if (isCurrentUser) {
                     Surface(
                         color = accentColor.copy(alpha = 0.14f),
@@ -750,23 +764,23 @@ private fun SanctuarySettingsDialog(
                 ) {
                     Icon(imageVector = Icons.Filled.Pin, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("تغيير الرمز السري (4 أرقام)")
+                    Text("تغيير كلمة السر الخاصة بك")
                 }
 
                 if (showPinEditor) {
                     OutlinedTextField(
                         value = newPin,
-                        onValueChange = { input -> newPin = input.filter { it.isDigit() }.take(4) },
-                        label = { Text("الرمز الجديد (4 أرقام)") },
+                        onValueChange = { input -> newPin = input.filter { it.isDigit() }.take(12) },
+                        label = { Text("كلمة السر الجديدة (أرقام)") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Button(
                         onClick = { onUpdatePin(newPin) },
-                        enabled = newPin.length == 4,
+                        enabled = newPin.length in 4..12,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("حفظ الرمز الجديد")
+                        Text("حفظ كلمة السر الجديدة")
                     }
                 }
 

@@ -272,8 +272,10 @@ class SanctuaryViewModel(
         inviteCode: String
     ) {
         val currentState = _sessionState.value as? SanctuarySessionState.NeedsRoleSetup ?: return
-        if (pin.length != 4 || !pin.all { it.isDigit() }) {
-            _sessionState.value = currentState.copy(errorMessage = "يرجى إدخال رمز سري من 4 أرقام.")
+        if (pin.length !in 4..12 || !pin.all { it.isDigit() }) {
+            _sessionState.value = currentState.copy(
+                errorMessage = "يرجى إدخال كلمة سر ${role.arabicName} (${role.expectedPasswordLength} أرقام)."
+            )
             return
         }
 
@@ -293,8 +295,9 @@ class SanctuaryViewModel(
                     } else {
                         existingSanctuary.nourPinHash
                     }
-                    if (storedHash.isNotEmpty() && storedHash != pinHash) {
-                        Result.failure(IllegalArgumentException("الرمز السري غير صحيح لملف ${role.arabicName}."))
+                    val expectedHash = storedHash.ifEmpty { PinSecurity.defaultHashFor(role) }
+                    if (expectedHash != pinHash) {
+                        Result.failure(IllegalArgumentException("كلمة السر غير صحيحة لملف ${role.arabicName}."))
                     } else {
                         repository.updateRolePinAndProfile(
                             sanctuaryId = existingSanctuary.id,
@@ -319,7 +322,7 @@ class SanctuaryViewModel(
             }.onFailure { err ->
                 _sessionState.value = currentState.copy(
                     isSubmitting = false,
-                    errorMessage = err.localizedMessage ?: "حدث خطأ أثناء إعداد الحساب."
+                    errorMessage = err.localizedMessage ?: "حدث خطأ أثناء الدخول للحساب."
                 )
             }
         }
@@ -332,8 +335,8 @@ class SanctuaryViewModel(
 
     fun updateCurrentPin(newPin: String) {
         val ready = _sessionState.value as? SanctuarySessionState.Ready ?: return
-        if (newPin.length != 4 || !newPin.all { it.isDigit() }) {
-            _events.tryEmit(UiEvent.Snackbar("يجب أن يتكون الرمز السري من 4 أرقام."))
+        if (newPin.length !in 4..12 || !newPin.all { it.isDigit() }) {
+            _events.tryEmit(UiEvent.Snackbar("يجب أن تتكون كلمة السر من 4 إلى 12 رقماً."))
             return
         }
         viewModelScope.launch {
@@ -344,9 +347,9 @@ class SanctuaryViewModel(
                 shouldSavePin = true,
                 darkModeEnabled = _darkMode.value
             ).onSuccess {
-                _events.tryEmit(UiEvent.Snackbar("تم تحديث الرمز السري بنجاح 🤍"))
+                _events.tryEmit(UiEvent.Snackbar("تم تحديث كلمة السر بنجاح 🤍"))
             }.onFailure {
-                _events.tryEmit(UiEvent.Snackbar("تعذر تحديث الرمز السري، حاول مرة أخرى."))
+                _events.tryEmit(UiEvent.Snackbar("تعذر تحديث كلمة السر، حاول مرة أخرى."))
             }
         }
     }

@@ -196,11 +196,20 @@ class SanctuaryRepository(
         var docPath = "sanctuaries"
         return try {
             val uid = requireUserId()
-            require(pin.length == 4 && pin.all { it.isDigit() }) { "الرمز السري يجب أن يتكون من 4 أرقام." }
+            require(pin.length in 4..12 && pin.all { it.isDigit() }) {
+                "كلمة السر يجب أن تتكون من أرقام صالحة."
+            }
+            val enteredHash = PinSecurity.sha256(pin)
+            if (enteredHash != PinSecurity.defaultHashFor(role)) {
+                return Result.failure(
+                    IllegalArgumentException("كلمة السر غير صحيحة لملف ${role.arabicName}.")
+                )
+            }
 
             val sanctuaryId = "sanctuary_$uid"
             val inviteCode = PinSecurity.generateInviteCode()
-            val pinHash = PinSecurity.sha256(pin)
+            val mahmoudHash = PinSecurity.defaultHashFor(CompanionRole.MAHMOUD)
+            val nourHash = PinSecurity.defaultHashFor(CompanionRole.NOUR)
             val members = listOf(uid)
 
             docPath = "sanctuaries/$sanctuaryId"
@@ -208,8 +217,8 @@ class SanctuaryRepository(
                 "ownerUid" to uid,
                 "memberUids" to members,
                 "inviteCode" to inviteCode,
-                "mahmoudPinHash" to if (role == CompanionRole.MAHMOUD) pinHash else "",
-                "nourPinHash" to if (role == CompanionRole.NOUR) pinHash else "",
+                "mahmoudPinHash" to mahmoudHash,
+                "nourPinHash" to nourHash,
                 "mahmoudStreak" to 0L,
                 "nourStreak" to 0L,
                 "createdAt" to FieldValue.serverTimestamp(),
@@ -267,8 +276,8 @@ class SanctuaryRepository(
                 ownerUid = uid,
                 memberUids = members,
                 inviteCode = inviteCode,
-                mahmoudPinHash = if (role == CompanionRole.MAHMOUD) pinHash else "",
-                nourPinHash = if (role == CompanionRole.NOUR) pinHash else ""
+                mahmoudPinHash = mahmoudHash,
+                nourPinHash = nourHash
             )
             Result.success(created)
         } catch (e: CancellationException) {
@@ -292,8 +301,8 @@ class SanctuaryRepository(
             require(code.length in 6..12 && code.all { it.isLetterOrDigit() }) {
                 "رمز الربط غير صالح."
             }
-            require(pin.length == 4 && pin.all { it.isDigit() }) {
-                "الرمز السري يجب أن يتكون من 4 أرقام."
+            require(pin.length in 4..12 && pin.all { it.isDigit() }) {
+                "كلمة السر يجب أن تتكون من أرقام صالحة."
             }
 
             docPath = "invite_codes/$code"
@@ -317,7 +326,7 @@ class SanctuaryRepository(
                 ).await()
             }
 
-            // Now we are a member -> read sanctuary and verify or set role PIN
+            // Now we are a member -> read sanctuary and verify role password
             val sanctuarySnap = db.collection("sanctuaries").document(sanctuaryId).get().await()
             val sanctuary = sanctuarySnap.toObject(
                 Sanctuary::class.java,
@@ -325,11 +334,12 @@ class SanctuaryRepository(
             ) ?: return Result.failure(IllegalStateException("تعذر تحميل بيانات المساحة المشتركة."))
 
             val pinHash = PinSecurity.sha256(pin)
-            val existingPinHash = if (role == CompanionRole.MAHMOUD) sanctuary.mahmoudPinHash else sanctuary.nourPinHash
-            if (existingPinHash.isNotEmpty() && existingPinHash != pinHash) {
-                return Result.failure(IllegalArgumentException("الرمز السري غير صحيح لملف ${role.arabicName}."))
+            val storedHash = if (role == CompanionRole.MAHMOUD) sanctuary.mahmoudPinHash else sanctuary.nourPinHash
+            val expectedHash = storedHash.ifEmpty { PinSecurity.defaultHashFor(role) }
+            if (expectedHash != pinHash) {
+                return Result.failure(IllegalArgumentException("كلمة السر غير صحيحة لملف ${role.arabicName}."))
             }
-            if (existingPinHash.isEmpty()) {
+            if (storedHash.isEmpty()) {
                 val pinField = if (role == CompanionRole.MAHMOUD) "mahmoudPinHash" else "nourPinHash"
                 db.collection("sanctuaries").document(sanctuaryId).update(
                     mapOf(

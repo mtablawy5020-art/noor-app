@@ -15,10 +15,23 @@ enum class CompanionRole(
     val key: String,
     val arabicName: String,
     val partnerArabicName: String,
-    val isMale: Boolean
+    val isMale: Boolean,
+    val expectedPasswordLength: Int
 ) {
-    MAHMOUD(key = "mahmoud", arabicName = "محمود", partnerArabicName = "نور", isMale = true),
-    NOUR(key = "nour", arabicName = "نور", partnerArabicName = "محمود", isMale = false);
+    MAHMOUD(
+        key = "mahmoud",
+        arabicName = "محمود",
+        partnerArabicName = "نور",
+        isMale = true,
+        expectedPasswordLength = 6
+    ),
+    NOUR(
+        key = "nour",
+        arabicName = "نور",
+        partnerArabicName = "محمود",
+        isMale = false,
+        expectedPasswordLength = 8
+    );
 
     fun partner(): CompanionRole = if (this == MAHMOUD) NOUR else MAHMOUD
 
@@ -268,6 +281,11 @@ object PinSecurity {
         val bytes = MessageDigest.getInstance("SHA-256")
             .digest("tariq_halal_v1:$pin".toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    fun defaultHashFor(role: CompanionRole): String = when (role) {
+        CompanionRole.MAHMOUD -> sha256("122007")
+        CompanionRole.NOUR -> sha256("29102002")
     }
 
     fun generateInviteCode(): String {
