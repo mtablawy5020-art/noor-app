@@ -1,0 +1,6 @@
+{
+  "name": "طريق الحلال",
+  "description": "رفيق روحي خاص لمحمود ونور للالتزام بالصلوات والأذكار والدعاء وطريق الحلال",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

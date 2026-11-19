@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">طريق الحلال</string>
+    <string name="nav_dashboard">الرئيسية</string>
+    <string name="nav_prayers">الصلوات</string>
+    <string name="nav_dhikr">المسبحة</string>
+    <string name="nav_dua">الدعاء</string>
+    <string name="nav_goal">هدفنا</string>
+    <string name="auth_welcome_title">طريق الحلال</string>
+    <string name="auth_welcome_subtitle">رفيق روحي خاص لمحمود ونور للثبات على الصلاة والذكر والدعاء، طمعاً في بركة الله والرزق والجمع في الحلال</string>
+    <string name="auth_google_button">تسجيل الدخول بحساب جوجل</string>
+    <string name="role_select_title">اختر ملفك الشخصي</string>
+    <string name="role_select_subtitle">مساحة خاصة ومحصّنة برقم سري لمحمود ونور فقط</string>
+    <string name="pin_enter_prompt">أدخل الرمز السري المكون من 4 أرقام</string>
+    <string name="pin_create_prompt">أنشئ رمزك السري المكون من 4 أرقام</string>
+    <string name="invite_code_toggle">هل لديك رمز ربط من شريكك؟</string>
+    <string name="invite_code_hint">أدخل رمز الربط (6 أحرف)</string>
+    <string name="ameen_button">آمين 🤍</string>
+    <string name="send_dua_button">إرسال الدعاء 🤲</string>
+    <string name="settings_title">إعدادات المساحة الخاصة</string>
+    <string name="dark_mode_label">الوضع الليلي الهادئ</string>
+    <string name="switch_profile_label">تبديل الحساب (محمود / نور)</string>
+    <string name="sign_out_label">تسجيل الخروج</string>
+    <string name="retry_label">إعادة المحاولة</string>
+</resources>

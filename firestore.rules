@@ -1,0 +1,376 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidRole(role) {
+      return role is string && role in ['mahmoud', 'nour'];
+    }
+
+    function isValidDhikrKey(key) {
+      return key is string && key in ['tasbeeh', 'istighfar', 'tahmid', 'hawqala', 'salawat'];
+    }
+
+    function isValidMemberUids(listVal) {
+      return listVal is list &&
+             listVal.size() >= 1 &&
+             listVal.size() <= 2 &&
+             listVal[0] is string &&
+             listVal[0].size() >= 1 &&
+             listVal[0].size() <= 128 &&
+             (listVal.size() < 2 || (listVal[1] is string && listVal[1].size() >= 1 && listVal[1].size() <= 128));
+    }
+
+    function isValidAdhkarList(listVal) {
+      return listVal is list &&
+             listVal.size() <= 20 &&
+             (listVal.size() == 0 || (listVal[0] is string && listVal[0].size() <= 64));
+    }
+
+    // --- ENTITY VALIDATION BLUEPRINTS ---
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             isValidRole(data.activeRole) &&
+             isValidId(data.sanctuaryId) &&
+             data.darkModeEnabled is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSanctuary(data) {
+      return data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+             isValidMemberUids(data.memberUids) &&
+             data.inviteCode is string && data.inviteCode.size() >= 6 && data.inviteCode.size() <= 12 && data.inviteCode.matches('^[A-Z0-9]+$') &&
+             data.mahmoudPinHash is string && data.mahmoudPinHash.size() <= 64 &&
+             data.nourPinHash is string && data.nourPinHash.size() <= 64 &&
+             data.mahmoudStreak is int && data.mahmoudStreak >= 0 && data.mahmoudStreak <= 10000 &&
+             data.nourStreak is int && data.nourStreak >= 0 && data.nourStreak <= 10000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidInviteCode(data) {
+      return isValidId(data.sanctuaryId) &&
+             data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidPrayerDaily(data) {
+      return isValidId(data.sanctuaryId) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             isValidMemberUids(data.memberUids) &&
+             data.dateKey is string && data.dateKey.size() == 10 && data.dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+             data.mahmoudFajr is bool &&
+             data.mahmoudDhuhr is bool &&
+             data.mahmoudAsr is bool &&
+             data.mahmoudMaghrib is bool &&
+             data.mahmoudIsha is bool &&
+             data.nourFajr is bool &&
+             data.nourDhuhr is bool &&
+             data.nourAsr is bool &&
+             data.nourMaghrib is bool &&
+             data.nourIsha is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidDhikrCount(data) {
+      return isValidId(data.sanctuaryId) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             isValidMemberUids(data.memberUids) &&
+             isValidRole(data.role) &&
+             isValidDhikrKey(data.dhikrKey) &&
+             data.dailyCount is int && data.dailyCount >= 0 && data.dailyCount <= 1000000 &&
+             data.dailyDateKey is string && data.dailyDateKey.size() == 10 &&
+             data.weeklyCount is int && data.weeklyCount >= 0 && data.weeklyCount <= 10000000 &&
+             data.weeklyKey is string && data.weeklyKey.size() >= 6 && data.weeklyKey.size() <= 12 &&
+             data.lifetimeCount is int && data.lifetimeCount >= 0 && data.lifetimeCount <= 100000000 &&
+             data.lastMilestoneNotified is int && data.lastMilestoneNotified >= 0 && data.lastMilestoneNotified <= 1000000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidDua(data) {
+      return isValidId(data.sanctuaryId) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             isValidMemberUids(data.memberUids) &&
+             isValidRole(data.senderRole) &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 1000 &&
+             data.tag is string && data.tag in ['rizq', 'marriage', 'peace', 'for_you', 'general'] &&
+             data.ameenByMahmoud is bool &&
+             data.ameenByNour is bool &&
+             data.pinned is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSharedGoal(data) {
+      return isValidId(data.sanctuaryId) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             isValidMemberUids(data.memberUids) &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.dhikrKey is string && data.dhikrKey in ['tasbeeh', 'istighfar', 'tahmid', 'hawqala', 'salawat', 'all'] &&
+             data.period is string && data.period in ['weekly', 'monthly'] &&
+             data.targetCount is int && data.targetCount >= 100 && data.targetCount <= 10000000 &&
+             data.mahmoudProgress is int && data.mahmoudProgress >= 0 && data.mahmoudProgress <= 10000000 &&
+             data.nourProgress is int && data.nourProgress >= 0 && data.nourProgress <= 10000000 &&
+             data.adhkarDateKey is string && data.adhkarDateKey.size() == 10 &&
+             isValidAdhkarList(data.mahmoudMorningAdhkar) &&
+             isValidAdhkarList(data.mahmoudEveningAdhkar) &&
+             isValidAdhkarList(data.nourMorningAdhkar) &&
+             isValidAdhkarList(data.nourEveningAdhkar) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidNotificationQueueItem(data) {
+      return isValidId(data.sanctuaryId) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             isValidMemberUids(data.memberUids) &&
+             isValidRole(data.senderRole) &&
+             isValidRole(data.recipientRole) &&
+             data.type is string && data.type in ['prayer', 'dhikr_milestone', 'dua', 'ameen', 'nudge'] &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.body is string && data.body.size() >= 1 && data.body.size() <= 400 &&
+             data.delivered is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // --- COLLECTION RULES ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'activeRole', 'sanctuaryId', 'darkModeEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'activeRole', 'sanctuaryId', 'darkModeEnabled', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'activeRole', 'sanctuaryId', 'darkModeEnabled', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    match /sanctuaries/{sanctuaryId} {
+      allow get: if isSignedIn() && isValidId(sanctuaryId) && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+      allow create: if isSignedIn() &&
+                       isValidId(sanctuaryId) &&
+                       incoming().ownerUid == request.auth.uid &&
+                       incoming().memberUids.size() == 1 &&
+                       incoming().memberUids[0] == request.auth.uid &&
+                       incoming().keys().hasAll(['ownerUid', 'memberUids', 'inviteCode', 'mahmoudPinHash', 'nourPinHash', 'mahmoudStreak', 'nourStreak', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['ownerUid', 'memberUids', 'inviteCode', 'mahmoudPinHash', 'nourPinHash', 'mahmoudStreak', 'nourStreak', 'createdAt', 'updatedAt']) &&
+                       isValidSanctuary(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(sanctuaryId) &&
+                       isValidSanctuary(incoming()) &&
+                       incoming().ownerUid == existing().ownerUid &&
+                       incoming().inviteCode == existing().inviteCode &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Existing member updates PINs or prayer streaks
+                         (request.auth.uid in existing().memberUids &&
+                          incoming().memberUids == existing().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['mahmoudPinHash', 'nourPinHash', 'mahmoudStreak', 'nourStreak', 'updatedAt'])) ||
+                         // Action 2: Second partner joins sanctuary using invite code
+                         (!(request.auth.uid in existing().memberUids) &&
+                          existing().memberUids.size() == 1 &&
+                          incoming().memberUids.size() == 2 &&
+                          incoming().memberUids.hasAll(existing().memberUids) &&
+                          request.auth.uid in incoming().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(sanctuaryId) && existing().ownerUid == request.auth.uid;
+    }
+
+    match /invite_codes/{code} {
+      allow get: if isSignedIn() && isValidId(code);
+      allow list: if false;
+      allow create: if isSignedIn() &&
+                       isValidId(code) &&
+                       incoming().ownerUid == request.auth.uid &&
+                       incoming().keys().hasAll(['sanctuaryId', 'ownerUid', 'createdAt']) &&
+                       incoming().keys().hasOnly(['sanctuaryId', 'ownerUid', 'createdAt']) &&
+                       isValidInviteCode(incoming());
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(code) && existing().ownerUid == request.auth.uid;
+    }
+
+    match /prayers_daily/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+      allow create: if isSignedIn() &&
+                       isValidId(docId) &&
+                       incoming().userId == request.auth.uid &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().keys().hasAll(['sanctuaryId', 'userId', 'memberUids', 'dateKey', 'mahmoudFajr', 'mahmoudDhuhr', 'mahmoudAsr', 'mahmoudMaghrib', 'mahmoudIsha', 'nourFajr', 'nourDhuhr', 'nourAsr', 'nourMaghrib', 'nourIsha', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['sanctuaryId', 'userId', 'memberUids', 'dateKey', 'mahmoudFajr', 'mahmoudDhuhr', 'mahmoudAsr', 'mahmoudMaghrib', 'mahmoudIsha', 'nourFajr', 'nourDhuhr', 'nourAsr', 'nourMaghrib', 'nourIsha', 'createdAt', 'updatedAt']) &&
+                       isValidPrayerDaily(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(docId) &&
+                       request.auth.uid in existing().memberUids &&
+                       isValidPrayerDaily(incoming()) &&
+                       incoming().sanctuaryId == existing().sanctuaryId &&
+                       incoming().userId == existing().userId &&
+                       incoming().dateKey == existing().dateKey &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Toggle prayer status
+                         (incoming().memberUids == existing().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['mahmoudFajr', 'mahmoudDhuhr', 'mahmoudAsr', 'mahmoudMaghrib', 'mahmoudIsha', 'nourFajr', 'nourDhuhr', 'nourAsr', 'nourMaghrib', 'nourIsha', 'updatedAt'])) ||
+                         // Action 2: Sync memberUids when second partner joins
+                         (incoming().memberUids.hasAll(existing().memberUids) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(docId) && existing().userId == request.auth.uid;
+    }
+
+    match /dhikr_counts/{docId} {
+      allow get: if isSignedIn() && isValidId(docId) && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+      allow create: if isSignedIn() &&
+                       isValidId(docId) &&
+                       incoming().userId == request.auth.uid &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().keys().hasAll(['sanctuaryId', 'userId', 'memberUids', 'role', 'dhikrKey', 'dailyCount', 'dailyDateKey', 'weeklyCount', 'weeklyKey', 'lifetimeCount', 'lastMilestoneNotified', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['sanctuaryId', 'userId', 'memberUids', 'role', 'dhikrKey', 'dailyCount', 'dailyDateKey', 'weeklyCount', 'weeklyKey', 'lifetimeCount', 'lastMilestoneNotified', 'createdAt', 'updatedAt']) &&
+                       isValidDhikrCount(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(docId) &&
+                       request.auth.uid in existing().memberUids &&
+                       isValidDhikrCount(incoming()) &&
+                       incoming().sanctuaryId == existing().sanctuaryId &&
+                       incoming().userId == existing().userId &&
+                       incoming().role == existing().role &&
+                       incoming().dhikrKey == existing().dhikrKey &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Increment or rollover Dhikr counters
+                         (incoming().memberUids == existing().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['dailyCount', 'dailyDateKey', 'weeklyCount', 'weeklyKey', 'lifetimeCount', 'lastMilestoneNotified', 'updatedAt'])) ||
+                         // Action 2: Sync memberUids when second partner joins
+                         (incoming().memberUids.hasAll(existing().memberUids) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(docId) && existing().userId == request.auth.uid;
+    }
+
+    match /duas/{duaId} {
+      allow get: if isSignedIn() && isValidId(duaId) && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+      allow create: if isSignedIn() &&
+                       isValidId(duaId) &&
+                       incoming().userId == request.auth.uid &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().keys().hasAll(['sanctuaryId', 'userId', 'memberUids', 'senderRole', 'content', 'tag', 'ameenByMahmoud', 'ameenByNour', 'pinned', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['sanctuaryId', 'userId', 'memberUids', 'senderRole', 'content', 'tag', 'ameenByMahmoud', 'ameenByNour', 'pinned', 'createdAt', 'updatedAt']) &&
+                       isValidDua(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(duaId) &&
+                       request.auth.uid in existing().memberUids &&
+                       isValidDua(incoming()) &&
+                       incoming().sanctuaryId == existing().sanctuaryId &&
+                       incoming().userId == existing().userId &&
+                       incoming().senderRole == existing().senderRole &&
+                       incoming().content == existing().content &&
+                       incoming().tag == existing().tag &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Toggle Ameen or Pin status
+                         (incoming().memberUids == existing().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['ameenByMahmoud', 'ameenByNour', 'pinned', 'updatedAt'])) ||
+                         // Action 2: Sync memberUids when second partner joins
+                         (incoming().memberUids.hasAll(existing().memberUids) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(duaId) && request.auth.uid in existing().memberUids;
+    }
+
+    match /shared_goals/{goalId} {
+      allow get: if isSignedIn() && isValidId(goalId) && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+      allow create: if isSignedIn() &&
+                       isValidId(goalId) &&
+                       incoming().userId == request.auth.uid &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().keys().hasAll(['sanctuaryId', 'userId', 'memberUids', 'title', 'dhikrKey', 'period', 'targetCount', 'mahmoudProgress', 'nourProgress', 'adhkarDateKey', 'mahmoudMorningAdhkar', 'mahmoudEveningAdhkar', 'nourMorningAdhkar', 'nourEveningAdhkar', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['sanctuaryId', 'userId', 'memberUids', 'title', 'dhikrKey', 'period', 'targetCount', 'mahmoudProgress', 'nourProgress', 'adhkarDateKey', 'mahmoudMorningAdhkar', 'mahmoudEveningAdhkar', 'nourMorningAdhkar', 'nourEveningAdhkar', 'createdAt', 'updatedAt']) &&
+                       isValidSharedGoal(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(goalId) &&
+                       request.auth.uid in existing().memberUids &&
+                       isValidSharedGoal(incoming()) &&
+                       incoming().sanctuaryId == existing().sanctuaryId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Update goal target, progress, or daily Adhkar checklist
+                         (incoming().memberUids == existing().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['title', 'dhikrKey', 'period', 'targetCount', 'mahmoudProgress', 'nourProgress', 'adhkarDateKey', 'mahmoudMorningAdhkar', 'mahmoudEveningAdhkar', 'nourMorningAdhkar', 'nourEveningAdhkar', 'updatedAt'])) ||
+                         // Action 2: Sync memberUids when second partner joins
+                         (incoming().memberUids.hasAll(existing().memberUids) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(goalId) && existing().userId == request.auth.uid;
+    }
+
+    match /notifications_queue/{notifId} {
+      allow get: if isSignedIn() && isValidId(notifId) && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in existing().memberUids;
+      allow create: if isSignedIn() &&
+                       isValidId(notifId) &&
+                       incoming().userId == request.auth.uid &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().keys().hasAll(['sanctuaryId', 'userId', 'memberUids', 'senderRole', 'recipientRole', 'type', 'title', 'body', 'delivered', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['sanctuaryId', 'userId', 'memberUids', 'senderRole', 'recipientRole', 'type', 'title', 'body', 'delivered', 'createdAt', 'updatedAt']) &&
+                       isValidNotificationQueueItem(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(notifId) &&
+                       request.auth.uid in existing().memberUids &&
+                       isValidNotificationQueueItem(incoming()) &&
+                       incoming().sanctuaryId == existing().sanctuaryId &&
+                       incoming().userId == existing().userId &&
+                       incoming().senderRole == existing().senderRole &&
+                       incoming().recipientRole == existing().recipientRole &&
+                       incoming().type == existing().type &&
+                       incoming().title == existing().title &&
+                       incoming().body == existing().body &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Mark notification delivered
+                         (incoming().memberUids == existing().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['delivered', 'updatedAt'])) ||
+                         // Action 2: Sync memberUids when second partner joins
+                         (incoming().memberUids.hasAll(existing().memberUids) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'updatedAt']))
+                       );
+      allow delete: if isSignedIn() && isValidId(notifId) && request.auth.uid in existing().memberUids;
+    }
+  }
+}

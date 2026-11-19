@@ -1,0 +1,271 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile linking a Google account to a private sanctuary and active role (mahmoud or nour).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name."
+        },
+        "activeRole": {
+          "type": "string",
+          "enum": ["mahmoud", "nour"],
+          "description": "Selected companion profile role."
+        },
+        "sanctuaryId": {
+          "type": "string",
+          "description": "Private couple sanctuary document ID."
+        },
+        "darkModeEnabled": {
+          "type": "boolean",
+          "description": "Whether peaceful Dark Mode is enabled."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["userId", "displayName", "activeRole", "sanctuaryId", "darkModeEnabled", "createdAt", "updatedAt"]
+    },
+    "Sanctuary": {
+      "title": "Sanctuary",
+      "description": "Private spiritual sanctuary exclusively shared between Mahmoud and Nour with 4-digit PIN hashes and streaks.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "description": "UID of the creator."
+        },
+        "memberUids": {
+          "type": "array",
+          "description": "Bounded list of up to 2 Firebase Auth UIDs belonging to this sanctuary."
+        },
+        "inviteCode": {
+          "type": "string",
+          "description": "Private 6-character pairing code."
+        },
+        "mahmoudPinHash": {
+          "type": "string",
+          "description": "SHA-256 hash of Mahmoud's 4-digit PIN."
+        },
+        "nourPinHash": {
+          "type": "string",
+          "description": "SHA-256 hash of Nour's 4-digit PIN."
+        },
+        "mahmoudStreak": {
+          "type": "integer",
+          "description": "Mahmoud's consecutive daily prayer streak."
+        },
+        "nourStreak": {
+          "type": "integer",
+          "description": "Nour's consecutive daily prayer streak."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["ownerUid", "memberUids", "inviteCode", "mahmoudPinHash", "nourPinHash", "mahmoudStreak", "nourStreak", "createdAt", "updatedAt"]
+    },
+    "InviteCode": {
+      "title": "InviteCode",
+      "description": "Lookup record mapping a pairing code to a sanctuaryId.",
+      "type": "object",
+      "properties": {
+        "sanctuaryId": {
+          "type": "string",
+          "description": "Target sanctuary ID."
+        },
+        "ownerUid": {
+          "type": "string",
+          "description": "UID of the sanctuary creator."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": ["sanctuaryId", "ownerUid", "createdAt"]
+    },
+    "PrayerDaily": {
+      "title": "PrayerDaily",
+      "description": "Daily completion record for the five obligatory prayers for both Mahmoud and Nour.",
+      "type": "object",
+      "properties": {
+        "sanctuaryId": { "type": "string" },
+        "userId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "dateKey": { "type": "string", "description": "YYYY-MM-DD local date key." },
+        "mahmoudFajr": { "type": "boolean" },
+        "mahmoudDhuhr": { "type": "boolean" },
+        "mahmoudAsr": { "type": "boolean" },
+        "mahmoudMaghrib": { "type": "boolean" },
+        "mahmoudIsha": { "type": "boolean" },
+        "nourFajr": { "type": "boolean" },
+        "nourDhuhr": { "type": "boolean" },
+        "nourAsr": { "type": "boolean" },
+        "nourMaghrib": { "type": "boolean" },
+        "nourIsha": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "sanctuaryId", "userId", "memberUids", "dateKey",
+        "mahmoudFajr", "mahmoudDhuhr", "mahmoudAsr", "mahmoudMaghrib", "mahmoudIsha",
+        "nourFajr", "nourDhuhr", "nourAsr", "nourMaghrib", "nourIsha",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "DhikrCount": {
+      "title": "DhikrCount",
+      "description": "Multi-period (daily, weekly, lifetime) Dhikr counter for one companion and one Dhikr type.",
+      "type": "object",
+      "properties": {
+        "sanctuaryId": { "type": "string" },
+        "userId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "role": { "type": "string", "enum": ["mahmoud", "nour"] },
+        "dhikrKey": { "type": "string", "enum": ["tasbeeh", "istighfar", "tahmid", "hawqala", "salawat"] },
+        "dailyCount": { "type": "integer" },
+        "dailyDateKey": { "type": "string" },
+        "weeklyCount": { "type": "integer" },
+        "weeklyKey": { "type": "string" },
+        "lifetimeCount": { "type": "integer" },
+        "lastMilestoneNotified": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "sanctuaryId", "userId", "memberUids", "role", "dhikrKey",
+        "dailyCount", "dailyDateKey", "weeklyCount", "weeklyKey",
+        "lifetimeCount", "lastMilestoneNotified", "createdAt", "updatedAt"
+      ]
+    },
+    "SharedDua": {
+      "title": "SharedDua",
+      "description": "A heartfelt Dua shared between Mahmoud and Nour with category tag, pin toggle, and real-time Ameen status.",
+      "type": "object",
+      "properties": {
+        "sanctuaryId": { "type": "string" },
+        "userId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "senderRole": { "type": "string", "enum": ["mahmoud", "nour"] },
+        "content": { "type": "string" },
+        "tag": { "type": "string", "enum": ["rizq", "marriage", "peace", "for_you", "general"] },
+        "ameenByMahmoud": { "type": "boolean" },
+        "ameenByNour": { "type": "boolean" },
+        "pinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "sanctuaryId", "userId", "memberUids", "senderRole", "content", "tag",
+        "ameenByMahmoud", "ameenByNour", "pinned", "createdAt", "updatedAt"
+      ]
+    },
+    "SharedGoal": {
+      "title": "SharedGoal",
+      "description": "Combined weekly or monthly Dhikr goal (Tariq Al-Halal) plus daily Morning & Evening Adhkar checklist progress.",
+      "type": "object",
+      "properties": {
+        "sanctuaryId": { "type": "string" },
+        "userId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "title": { "type": "string" },
+        "dhikrKey": { "type": "string", "enum": ["tasbeeh", "istighfar", "tahmid", "hawqala", "salawat", "all"] },
+        "period": { "type": "string", "enum": ["weekly", "monthly"] },
+        "targetCount": { "type": "integer" },
+        "mahmoudProgress": { "type": "integer" },
+        "nourProgress": { "type": "integer" },
+        "adhkarDateKey": { "type": "string" },
+        "mahmoudMorningAdhkar": { "type": "array" },
+        "mahmoudEveningAdhkar": { "type": "array" },
+        "nourMorningAdhkar": { "type": "array" },
+        "nourEveningAdhkar": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "sanctuaryId", "userId", "memberUids", "title", "dhikrKey", "period",
+        "targetCount", "mahmoudProgress", "nourProgress", "adhkarDateKey",
+        "mahmoudMorningAdhkar", "mahmoudEveningAdhkar", "nourMorningAdhkar", "nourEveningAdhkar",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "NotificationQueueItem": {
+      "title": "NotificationQueueItem",
+      "description": "Queued partner notification triggered by prayers, 500-Dhikr milestones, new Duas, Ameen responses, or spiritual nudges.",
+      "type": "object",
+      "properties": {
+        "sanctuaryId": { "type": "string" },
+        "userId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "senderRole": { "type": "string", "enum": ["mahmoud", "nour"] },
+        "recipientRole": { "type": "string", "enum": ["mahmoud", "nour"] },
+        "type": { "type": "string", "enum": ["prayer", "dhikr_milestone", "dua", "ameen", "nudge"] },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "delivered": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "sanctuaryId", "userId", "memberUids", "senderRole", "recipientRole",
+        "type", "title", "body", "delivered", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Per-user private profile linking Firebase Auth UID to sanctuaryId and role."
+    },
+    "/sanctuaries/{sanctuaryId}": {
+      "schema": { "$ref": "#/entities/Sanctuary" },
+      "description": "Private sanctuary document shared between Mahmoud and Nour."
+    },
+    "/invite_codes/{code}": {
+      "schema": { "$ref": "#/entities/InviteCode" },
+      "description": "Invite code lookup table for pairing the two partners."
+    },
+    "/prayers_daily/{docId}": {
+      "schema": { "$ref": "#/entities/PrayerDaily" },
+      "description": "Daily 5-prayer completion records keyed by sanctuaryId and YYYY-MM-DD."
+    },
+    "/dhikr_counts/{docId}": {
+      "schema": { "$ref": "#/entities/DhikrCount" },
+      "description": "Daily, weekly, and lifetime Dhikr counters per companion and Dhikr type."
+    },
+    "/duas/{duaId}": {
+      "schema": { "$ref": "#/entities/SharedDua" },
+      "description": "Shared Dua messages with category tags, pin status, and live Ameen flags."
+    },
+    "/shared_goals/{goalId}": {
+      "schema": { "$ref": "#/entities/SharedGoal" },
+      "description": "Combined Dhikr goal progress and Morning/Evening Adhkar checklist."
+    },
+    "/notifications_queue/{notifId}": {
+      "schema": { "$ref": "#/entities/NotificationQueueItem" },
+      "description": "Real-time partner notifications queue consumed by local notification listener and optional FCM Cloud Function."
+    }
+  }
+}
