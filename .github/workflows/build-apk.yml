@@ -37,6 +37,21 @@ jobs:
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
+      - name: Restore google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ ! -f app/google-services.json ]; then
+            if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+              printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+              echo "Restored app/google-services.json from GitHub Secret."
+            else
+              echo "ERROR: app/google-services.json is missing."
+              echo "Add a repository secret named GOOGLE_SERVICES_JSON (containing app/google-services.json) in GitHub Settings -> Secrets and variables -> Actions, or upload app/google-services.json into the app/ folder of your private repo."
+              exit 1
+            fi
+          fi
+
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
 
